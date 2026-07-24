@@ -1,0 +1,30 @@
+# docker-compose.leia.yml - app LeIA (Streamlit) isolado do compose de infra.
+#
+# Mantido SEPARADO do docker-compose.yml (LocalStack/Postgres) de propósito: o LeIA
+# não depende daquela infra. Suba com:
+#
+#     docker compose -f docker-compose.leia.yml up --build
+#
+# A porta vem do .env (LEIA_PORT). As credenciais AWS precisam chegar ao container pra
+# falar com o Bedrock - via env vars abaixo OU montando ~/.aws (veja o bloco `volumes`).
+
+services:
+  leia:
+    build: .
+    container_name: leia
+    env_file: .env
+    ports:
+      # Publica a porta do .env no host (mesmo número dentro e fora do container).
+      - "${LEIA_PORT}:${LEIA_PORT}"
+    environment:
+      - LEIA_PORT=${LEIA_PORT}
+      - AWS_REGION=${AWS_REGION}
+      - BEDROCK_MODEL_ID=${BEDROCK_MODEL_ID}
+      # Credenciais AWS (cadeia padrão do boto3). Preencha no .env ou exporte no host.
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:-}
+    # Alternativa às env vars acima: reaproveitar seu perfil AWS local (read-only).
+    # Descomente se você usa `aws configure` / SSO no host (em WSL/Linux):
+    # volumes:
+    #   - "${HOME}/.aws:/root/.aws:ro"

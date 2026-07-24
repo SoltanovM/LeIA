@@ -1,0 +1,4 @@
+# Dependências do app LeIA (instaladas no container via uv).
+streamlit>=1.40
+boto3>=1.35
+pydantic-settings>=2.5
