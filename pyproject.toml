@@ -1,0 +1,46 @@
+[project]
+name = "leia"
+version = "0.1.0"
+description = "LeIA — plataforma de documentos: extração por página, persistência, RAG e MCP (arquitetura hexagonal)."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "streamlit>=1.40",
+    "boto3>=1.35",
+    "pydantic-settings>=2.5",
+    "pypdf>=6.0",
+    "pymupdf>=1.24",           # renderiza página de PDF -> imagem (preview/comparação na UI)
+    "pgvector>=0.3",
+    "psycopg[binary]>=3.2",
+    "mcp[cli]>=1.9,<2",       # SDK oficial 1.x (tem mcp.server.fastmcp.FastMCP); 2.x removeu
+]
+
+# Console scripts (modo --package): a UI, o servidor MCP e o init do banco.
+[project.scripts]
+leia = "leia.ui.cli:main"
+leia-mcp = "leia.mcp.server:main"
+leia-db = "leia.db:main"
+
+[build-system]
+requires = ["uv_build>=0.11.29,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "mypy>=1.11",
+    "pytest>=8.3",
+    "ruff>=0.6",
+]
+
+[tool.ruff]
+src = ["src", "tests"]
+line-length = 100
+
+[tool.mypy]
+python_version = "3.12"
+packages = ["leia"]
+ignore_missing_imports = true  # boto3/streamlit/pgvector sem stubs completos
+
+[tool.pytest.ini_options]
+# Coleta só os testes do LeIA (evita varrer _reference/ do credit_ai arquivado).
+testpaths = ["tests"]

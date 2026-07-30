@@ -1,0 +1,17 @@
+# Mantém a imagem pequena: só precisamos de pyproject.toml, README.md e src/.
+.venv/
+.git/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.env
+dist/
+*.egg-info/
+tests/
+Makefile
+docker-compose.yml
+frpc.toml
+.leia-blobs/
+.postgres/

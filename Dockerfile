@@ -1,27 +1,20 @@
-# LeIA - imagem do app Streamlit. Usa uv (mesmo tooling do projeto) pra instalar deps.
+# LeIA — imagem do app. Instala o pacote com uv (mesmo tooling do projeto, learning 01/03).
 FROM python:3.12-slim
 
-# uv: gerenciador de pacotes rápido, copiado do binário oficial (sem pip install extra).
+# uv: gerenciador de pacotes rápido, copiado do binário oficial.
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 WORKDIR /app
 
-# Instala as dependências primeiro: cache de layer - só reinstala se requirements mudar.
-COPY requirements.txt .
-RUN uv pip install --system -r requirements.txt
-
-# Copia o código do app.
-COPY app.py .
-COPY leia ./leia
+# Copia o necessário pra buildar o pacote e instala (traz streamlit/boto3/pydantic-settings
+# + o console script `leia`). `--system` = instala no Python do container, sem venv.
+COPY pyproject.toml README.md ./
+COPY src ./src
+RUN uv pip install --system .
 
 # Porta padrão (sobrescrita pelo .env / compose via LEIA_PORT).
 ENV LEIA_PORT=8086
 EXPOSE 8086
 
-# --server.address 0.0.0.0 = aceita conexões de fora do container.
-# --server.headless true   = não tenta abrir navegador nem pedir e-mail no 1º uso.
-# Forma shell (sem colchetes) pra que ${LEIA_PORT} seja expandido pelo shell.
-CMD streamlit run app.py \
-    --server.port=${LEIA_PORT} \
-    --server.address=0.0.0.0 \
-    --server.headless=true
+# O console script `leia` lê LEIA_PORT e sobe o Streamlit em 0.0.0.0 (headless).
+CMD ["leia"]

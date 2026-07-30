@@ -1,0 +1,16 @@
+# frpc.toml — túnel reverso SÓ do LeIA. Mesmo padrão dos outros apps de lab.soltanov.io.
+# NADA de confidencial aqui: todos os valores sensíveis vêm do ./.env via templating
+# ({{ .Envs.X }}), que o frpc resolve antes de parsear o TOML. Assim este arquivo pode ir
+# pro git sem vazar endereço/porta/token do relay.
+serverAddr = "{{ .Envs.FRP_SERVER_ADDR }}"    # relay (IP/host) — .env: FRP_SERVER_ADDR
+serverPort = {{ .Envs.FRP_SERVER_PORT }}      # frps: canal de controle — .env: FRP_SERVER_PORT
+auth.method = "token"
+auth.token = "{{ .Envs.FRP_TOKEN }}"
+
+# name e remotePort precisam ser ÚNICOS no relay. Caddy: LeIA.lab.soltanov.io → 127.0.0.1:<remotePort>.
+[[proxies]]
+name = "leia"
+type = "tcp"
+localIP = "leia"                          # nome do container leia neste compose
+localPort = {{ .Envs.LEIA_PORT }}         # porta interna do Streamlit
+remotePort = {{ .Envs.FRP_REMOTE_PORT }}  # porta que o frps abre no relay — .env: FRP_REMOTE_PORT

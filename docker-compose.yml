@@ -1,0 +1,92 @@
+# docker-compose.yml — LeIA (Streamlit) + Postgres/pgvector + frpc (túnel, sob profile).
+#
+#   make test  →  docker compose up -d            → leia + postgres (localhost:8086, SEM túnel)
+#   make up    →  docker compose --profile tunnel up -d   → + frpc (público via relay)
+#
+# frpc alcança o leia por `leia:${LEIA_PORT}`; o leia alcança o banco por `postgres:5432`.
+# Credenciais AWS só são usadas com BACKEND=aws (o default é `mock`, offline).
+
+services:
+  leia:
+    build: .
+    container_name: leia
+    env_file: .env
+    ports:
+      - "${LEIA_PORT}:${LEIA_PORT}"
+    environment:
+      - LEIA_PORT=${LEIA_PORT}
+      - BACKEND=${BACKEND}
+      # No compose o host do banco é o serviço `postgres` (sobrescreve o default localhost).
+      - DATABASE_URL=postgresql://leia:leia@postgres:5432/leia
+      - AWS_REGION=${AWS_REGION}
+      - BEDROCK_MODEL_ID=${BEDROCK_MODEL_ID}
+      - S3_BUCKET=${S3_BUCKET}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:-}
+      # URL do servidor MCP (o agente da Stage 3 consome isto).
+      - MCP_URL=http://leia-mcp:8087/mcp
+    depends_on:
+      # Espera o Postgres ficar HEALTHY antes de subir (o app cria o schema no startup).
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Servidor MCP (mesma imagem, transporte HTTP) — consumido pelo agente do chat.
+  leia-mcp:
+    build: .
+    container_name: leia-mcp
+    command: ["leia-mcp"]
+    env_file: .env
+    environment:
+      - BACKEND=${BACKEND}
+      - DATABASE_URL=postgresql://leia:leia@postgres:5432/leia
+      - AWS_REGION=${AWS_REGION}
+      - BEDROCK_MODEL_ID=${BEDROCK_MODEL_ID}
+      - S3_BUCKET=${S3_BUCKET}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:-}
+      - MCP_HOST=0.0.0.0
+      - MCP_PORT=8087
+    ports:
+      - "8087:8087"                      # http://localhost:8087/mcp (debug/inspector)
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Postgres com pgvector — metadados (documents/pages) + vetores (page_chunks).
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: leia-postgres
+    environment:
+      - POSTGRES_USER=leia
+      - POSTGRES_PASSWORD=leia
+      - POSTGRES_DB=leia
+    ports:
+      - "5432:5432"
+    volumes:
+      - "./.postgres:/var/lib/postgresql/data"  # persiste entre reinícios
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U leia -d leia"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  frpc:
+    image: snowdreamtech/frpc:latest
+    container_name: leia-frpc
+    profiles: ["tunnel"]              # só sobe com --profile tunnel (make up)
+    restart: unless-stopped
+    environment:
+      # frpc.toml lê tudo via templating {{ .Envs.X }} (nada sensível no .toml).
+      - FRP_SERVER_ADDR=${FRP_SERVER_ADDR}
+      - FRP_SERVER_PORT=${FRP_SERVER_PORT}
+      - FRP_REMOTE_PORT=${FRP_REMOTE_PORT}
+      - FRP_TOKEN=${FRP_TOKEN}
+      - LEIA_PORT=${LEIA_PORT}
+    volumes:
+      - ./frpc.toml:/etc/frp/frpc.toml:ro
+    depends_on:
+      - leia

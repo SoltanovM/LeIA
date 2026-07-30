@@ -1,0 +1,28 @@
+# Ambiente e caches
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Build
+dist/
+*.egg-info/
+
+# Dados locais (blob em disco no backend=mock; volumes de container)
+.leia-blobs/
+.postgres/
+.localstack/
+
+# Configuração local com segredos — nunca versionar
+.env
+
+# Notas, referência e config de editor (não versionar)
+CLAUDE.md
+learnings-matheus/
+_reference/
+.vscode/
+job-description.pdf
+job-description.json
+*.session.sql
