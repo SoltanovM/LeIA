@@ -54,8 +54,10 @@ with st.sidebar:
 
 navigation = st.navigation(
     [
-        st.Page(chat_page, title="Chat", icon="💬", default=True),
-        st.Page(documents_page, title="Documentos", icon="📄"),
+        # url_path explícito: as duas funções se chamam `render`, então o Streamlit não
+        # consegue inferir um pathname único sozinho (daí o erro de URL duplicada).
+        st.Page(chat_page, title="Chat", icon="💬", url_path="chat", default=True),
+        st.Page(documents_page, title="Documentos", icon="📄", url_path="documentos"),
     ]
 )
 navigation.run()
