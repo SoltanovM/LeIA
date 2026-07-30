@@ -1,3 +1,0 @@
-app-name: LeIA
-remote-port: 8086
-link: LeIA.lab.soltanov.io
