@@ -1,4 +1,4 @@
-"""ADAPTER driven (offline) — conversas em memória. Default do backend=mock (por processo)."""
+"""ADAPTER driven (offline) - conversas em memória. Default do backend=mock (por processo)."""
 
 from __future__ import annotations
 

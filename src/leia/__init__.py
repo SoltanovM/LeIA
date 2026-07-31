@@ -1,4 +1,4 @@
-"""LeIA — perguntas sobre documentos (PDF/PNG/JPG) via Amazon Bedrock.
+"""LeIA - perguntas sobre documentos (PDF/PNG/JPG) via Amazon Bedrock.
 
 Organizado em arquitetura hexagonal (ports & adapters):
     domain/  -> dados puros (o QUÊ)          ports.py  -> interfaces (contratos)

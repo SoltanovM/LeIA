@@ -1,4 +1,4 @@
-"""ADAPTER driven (offline) — busca por palavra-chave em memória. Default do backend=mock.
+"""ADAPTER driven (offline) - busca por palavra-chave em memória. Default do backend=mock.
 
 Não é embedding de verdade: pontua por ocorrência dos termos. Serve pra rodar a busca sem
 AWS/Postgres. O adapter pgvector faz a busca semântica real.
@@ -29,6 +29,8 @@ class MockVectorIndex:
             text = page.content.lower()
             score = sum(text.count(term) for term in terms)
             if score > 0:
-                hits.append(SearchHit(page.document_id, page.number, page.content[:500], float(score)))
+                hits.append(
+                    SearchHit(page.document_id, page.number, page.content[:500], float(score))
+                )
         hits.sort(key=lambda h: h.score, reverse=True)
         return hits[:k]

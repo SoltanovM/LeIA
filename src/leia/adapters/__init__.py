@@ -1,1 +1,1 @@
-"""Adapters (driven) — implementações concretas dos ports, por tecnologia."""
+"""Adapters (driven) - implementações concretas dos ports, por tecnologia."""

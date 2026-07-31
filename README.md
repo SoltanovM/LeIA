@@ -7,19 +7,19 @@ fundamentado no conteúdo dos seus documentos, via um agente que consome **MCP t
 
 > **Nome:** *LeIA* = "leia!" (imperativo de ler) + **IA**. 🙂
 > Arquitetura **hexagonal** (ports & adapters). Backend `mock` (offline) ou `aws` (Bedrock +
-> S3 + Postgres/pgvector) — troca por uma env var.
+> S3 + Postgres/pgvector) - troca por uma env var.
 
-## Arquitetura (hexagonal — ports & adapters)
+## Arquitetura (hexagonal - ports & adapters)
 
 A dependência aponta sempre **pra dentro**: UI, MCP e a infra (Bedrock/S3/Postgres) dependem
 do núcleo, nunca o contrário. Trocar de tecnologia = escrever outro **adapter**.
 
 ```md
 src/leia/
-├── domain/models.py     # NÚCLEO — RawUpload, Document, Page, SearchHit, ChatMessage, Conversation
+├── domain/models.py     # NÚCLEO - RawUpload, Document, Page, SearchHit, ChatMessage, Conversation
 ├── ports.py             # PORTS: DocumentExtractor, BlobStore, DocumentRepository, Vectorizer, ConversationStore
 ├── service.py           # LeiaService.ingest() + consultas (progresso por etapa/página)
-├── chat/service.py      # ChatService — conversas; o agente entra como `answerer`
+├── chat/service.py      # ChatService - conversas; o agente entra como `answerer`
 ├── adapters/
 │   ├── extraction/      # mock | bedrock  (Converse multimodal, 1 chamada/página)
 │   ├── blob/            # filesystem | s3  (arquivo cru + resultado por página)
@@ -27,17 +27,17 @@ src/leia/
 │   ├── vector/          # mock | pgvector  (page_chunks + HNSW; embeddings Titan V2)
 │   ├── conversation/    # memory | postgres  (conversations, chat_messages)
 │   └── aws_clients.py   # clients boto3 memoizados
-├── config.py            # pydantic-settings — BACKEND, login, MCP, Bedrock, Postgres
-├── factory.py           # COMPOSITION ROOT — build_service() / build_chat_service()
+├── config.py            # pydantic-settings - BACKEND, login, MCP, Bedrock, Postgres
+├── factory.py           # COMPOSITION ROOT - build_service() / build_chat_service()
 ├── db.py                # init do schema Postgres (console `leia-db`)
 ├── ui/
-│   ├── app.py           # DRIVING — login + navegação multipage (console `leia`)
+│   ├── app.py           # DRIVING - login + navegação multipage (console `leia`)
 │   └── pages/           # chat.py (principal, estilo ChatGPT) | documents.py
-└── mcp/server.py        # DRIVING — servidor MCP em HTTP (console `leia-mcp`)
-tests/                   # test_service.py, test_chat.py — com adapters mock, SEM AWS/Postgres
+└── mcp/server.py        # DRIVING - servidor MCP em HTTP (console `leia-mcp`)
+tests/                   # test_service.py, test_chat.py - com adapters mock, SEM AWS/Postgres
 ```
 
-**Prova viva de ports/adapters:** o swap `mock ↔ aws` é só a env `BACKEND` — `service`, `chat`
+**Prova viva de ports/adapters:** o swap `mock ↔ aws` é só a env `BACKEND` - `service`, `chat`
 e domínio não mudam uma linha. `mock` roda 100% offline; `aws` = Bedrock + S3 + Postgres/pgvector.
 
 ## Rodar
@@ -63,7 +63,7 @@ make db-init              # cria o schema (documents, pages, page_chunks, conver
 make run-aws              # UI com BACKEND=aws (precisa de credenciais AWS)
 ```
 
-Com Docker — um `docker-compose.yml` (leia + leia-mcp + postgres):
+Com Docker - um `docker-compose.yml` (leia + leia-mcp + postgres):
 
 ```bash
 make test                 # sobe leia + leia-mcp + postgres → http://localhost:8086
@@ -77,7 +77,7 @@ make logs / ps / remove   # logs / estado / limpa containers por nome
 ### MCP (Model Context Protocol)
 
 O `leia-mcp` expõe as capacidades do LeIA como **tools** (`list_documents`, `total_pages`,
-`page_content`, `search_pages`) sobre o mesmo núcleo — é só mais um *driving adapter*. Roda em
+`page_content`, `search_pages`) sobre o mesmo núcleo - é só mais um *driving adapter*. Roda em
 **Streamable HTTP** por padrão (`MCP_HOST:MCP_PORT/mcp`); pra stdio (ex.: Claude Desktop),
 `MCP_TRANSPORT=stdio`. O agente do chat consome esse servidor via `MCP_URL`.
 

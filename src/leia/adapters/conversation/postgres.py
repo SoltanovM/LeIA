@@ -1,6 +1,6 @@
-"""ADAPTER driven — conversas no Postgres (tabelas `conversations` e `chat_messages`).
+"""ADAPTER driven - conversas no Postgres (tabelas `conversations` e `chat_messages`).
 
-No mesmo banco do repo/pgvector. Conversas são POR USUÁRIO (owner) — base pra isolamento
+No mesmo banco do repo/pgvector. Conversas são POR USUÁRIO (owner) - base pra isolamento
 por usuário e pra memória entre conversas (Stage 5). `init_schema()` é idempotente.
 """
 
@@ -25,18 +25,15 @@ class PostgresConversationStore:
 
     def init_schema(self) -> None:
         with self._connect() as conn, conn.cursor() as cur:
-            cur.execute(
-                """
+            cur.execute("""
                 CREATE TABLE IF NOT EXISTS conversations (
                     id         text PRIMARY KEY,
                     owner      text NOT NULL,
                     title      text NOT NULL DEFAULT '',
                     created_at timestamptz NOT NULL DEFAULT now()
                 )
-                """
-            )
-            cur.execute(
-                """
+                """)
+            cur.execute("""
                 CREATE TABLE IF NOT EXISTS chat_messages (
                     id              bigserial PRIMARY KEY,
                     conversation_id text NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
@@ -44,8 +41,7 @@ class PostgresConversationStore:
                     content         text NOT NULL,
                     created_at      timestamptz NOT NULL DEFAULT now()
                 )
-                """
-            )
+                """)
             cur.execute(
                 "CREATE INDEX IF NOT EXISTS chat_messages_conv_idx"
                 " ON chat_messages (conversation_id, id)"

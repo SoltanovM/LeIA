@@ -1,7 +1,7 @@
 [project]
 name = "leia"
 version = "0.1.0"
-description = "LeIA — plataforma de documentos: extração por página, persistência, RAG e MCP (arquitetura hexagonal)."
+description = "LeIA - plataforma de documentos: extração por página, persistência, RAG e MCP (arquitetura hexagonal)."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -13,6 +13,15 @@ dependencies = [
     "pgvector>=0.3",
     "psycopg[binary]>=3.2",
     "mcp[cli]>=1.9,<2",       # SDK oficial 1.x (tem mcp.server.fastmcp.FastMCP); 2.x removeu
+    # Agente do chat (Stage 3): LangChain/LangGraph + Claude (Bedrock) consumindo o MCP.
+    "langchain>=1.0",         # create_agent (nova API; substitui langgraph.create_react_agent)
+    "langgraph>=0.2",
+    "langchain-aws>=0.2",
+    "langchain-mcp-adapters>=0.1",
+    # Observabilidade (Stage/Fase 5): OpenTelemetry + OpenInference (instrumenta o LangChain).
+    "opentelemetry-sdk>=1.20",
+    "opentelemetry-exporter-otlp-proto-http>=1.20",
+    "openinference-instrumentation-langchain>=0.1",
 ]
 
 # Console scripts (modo --package): a UI, o servidor MCP e o init do banco.

@@ -6,7 +6,7 @@ daqui. `get_settings()` é memoizado com `lru_cache` (lê env/.env uma vez por p
 `BACKEND` é o interruptor híbrido, no espírito da "prova viva de ports/adapters":
     mock -> tudo offline (extractor fake, blob em disco, repo em memória, vetor fake)
     aws  -> Bedrock (extração + embeddings) + S3 (blob) + Postgres/pgvector (metadados+vetor)
-Trocar de um pro outro NÃO muda o domínio/service — só qual adapter a `factory` injeta.
+Trocar de um pro outro NÃO muda o domínio/service - só qual adapter a `factory` injeta.
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class BackendName(StrEnum):
     """Conjunto de adapters a injetar (ver `factory`)."""
 
-    MOCK = "mock"  # offline, sem AWS/Postgres — default de dev
+    MOCK = "mock"  # offline, sem AWS/Postgres - default de dev
     AWS = "aws"  # Bedrock + S3 + Postgres/pgvector
 
 
@@ -56,10 +56,17 @@ class Settings(BaseSettings):
     bedrock_model_id: str = "us.amazon.nova-lite-v1:0"
     bedrock_max_tokens: int = 4096
     bedrock_temperature: float = 0.0  # 0.0 = determinístico (transcrição fiel)
+    # Páginas transcritas EM PARALELO (I/O-bound: 1 chamada Bedrock/página). Cap por causa
+    # da quota de TPS do Bedrock (muitos em paralelo = ThrottlingException). 1 = sequencial.
+    extraction_max_workers: int = 4
 
-    # Embeddings (Titan V2 first-party) — usados pelo Vectorizer pgvector.
+    # Embeddings (Titan V2 first-party) - usados pelo Vectorizer pgvector.
     bedrock_embedding_model_id: str = "amazon.titan-embed-text-v2:0"
     embedding_dimensions: int = 1024
+
+    # Modelo do AGENTE do chat (tool-calling). Default = Nova (first-party, SEM Marketplace/pagamento).
+    # Claude exige assinatura no Marketplace (cartão). Upgrade de qualidade: us.amazon.nova-pro-v1:0.
+    agent_model_id: str = "us.amazon.nova-lite-v1:0"
 
     # --- Blob store (S3 no backend=aws) ---------------------------------------
     s3_bucket: str = "leia-documents"
@@ -74,6 +81,18 @@ class Settings(BaseSettings):
     mcp_port: int = 8087
     # URL que o agente usa pra conectar no MCP. No compose: http://leia-mcp:8087/mcp.
     mcp_url: str = "http://localhost:8087/mcp"
+
+    # --- Observabilidade (OpenTelemetry -> Langfuse) --------------------------
+    otel_enabled: bool = False  # liga o tracing do agente (OTLP -> Langfuse)
+    # OTLP HTTP base do Langfuse self-hosted: http://localhost:3000/api/public/otel (no compose,
+    # langfuse-web:3000). O exporter concatena "/v1/traces".
+    otel_endpoint: str = "http://localhost:3000/api/public/otel"
+    otel_service_name: str = "leia-agent"
+
+    # Langfuse self-hosted: se as duas chaves estiverem preenchidas, o exporter OTLP autentica
+    # no Langfuse com Basic auth (base64 de "public:secret"). Vazias = sem auth.
+    langfuse_public_key: str = ""
+    langfuse_secret_key: str = ""
 
 
 @lru_cache

@@ -1,4 +1,4 @@
-# LeIA — imagem do app. Instala o pacote com uv (mesmo tooling do projeto, learning 01/03).
+# LeIA - imagem do app. Instala o pacote com uv (mesmo tooling do projeto, learning 01/03).
 FROM python:3.12-slim
 
 # uv: gerenciador de pacotes rápido, copiado do binário oficial.
@@ -10,6 +10,8 @@ WORKDIR /app
 # + o console script `leia`). `--system` = instala no Python do container, sem venv.
 COPY pyproject.toml README.md ./
 COPY src ./src
+COPY .streamlit ./.streamlit
+COPY assets ./assets
 RUN uv pip install --system .
 
 # Porta padrão (sobrescrita pelo .env / compose via LEIA_PORT).

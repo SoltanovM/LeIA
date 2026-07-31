@@ -1,4 +1,4 @@
-# Makefile — atalhos do LeIA (veja learnings 04-comandos-do-projeto e 06-qualidade).
+# Makefile - atalhos do LeIA (veja learnings 04-comandos-do-projeto e 06-qualidade).
 # Rode `make` (ou `make help`) pra ver os comandos.
 #
 # Um docker-compose.yml (leia + postgres + frpc atrás do profile `tunnel`):
@@ -11,7 +11,8 @@ LEIA_PORT ?= 8086
 
 .DEFAULT_GOAL := help
 .PHONY: help install run run-aws lint format typecheck pytest check \
-        db db-init mcp test test-stop test-logs up down restart logs ps remove build clean
+        db db-init mcp test test-stop test-logs up up-obs down restart logs ps remove build clean \
+        obs obs-stop
 
 help:  ## Lista os comandos disponíveis
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -28,7 +29,7 @@ run:  ## Sobe a UI Streamlit local via uv (backend do .env; default mock)
 run-aws:  ## Sobe a UI forçando BACKEND=aws (precisa de AWS + Postgres no ar)
 	BACKEND=aws uv run leia
 
-mcp:  ## Sobe o servidor MCP (stdio) — tools do LeIA
+mcp:  ## Sobe o servidor MCP (stdio) - tools do LeIA
 	uv run leia-mcp
 
 # --- Banco (Postgres/pgvector) ----------------------------------------------
@@ -78,10 +79,30 @@ up:  ## Deploy: leia + frpc (túnel). Exige BACKEND=aws e ./.env com FRP_TOKEN.
 	docker compose --profile tunnel up --build -d --remove-orphans
 	@echo "→ Deploy no ar: https://LeIA.lab.soltanov.io  (via túnel frpc)"
 
-down:  ## Para o deployment (leia + frpc)
-	docker compose --profile tunnel down
+up-obs:  ## Deploy + painel Langfuse público (obs.leia.lab.soltanov.io). Exige FRP_OBS_REMOTE_PORT.
+	@[ -f .env ] || { echo "ERRO: falta ./.env (cp .env.example .env e preencha)"; exit 1; }
+	@[ "$(BACKEND)" = "aws" ] || { echo "ERRO: deploy exige BACKEND=aws no .env (atual: '$(BACKEND)')."; exit 1; }
+	@[ -n "$(FRP_TOKEN)" ] || { echo "ERRO: FRP_TOKEN vazio no .env (necessário pro túnel)."; exit 1; }
+	@[ -n "$(FRP_OBS_REMOTE_PORT)" ] || { echo "ERRO: FRP_OBS_REMOTE_PORT vazio no .env (porta do obs no relay)."; exit 1; }
+	@$(MAKE) --no-print-directory remove
+	docker compose --profile tunnel --profile langfuse up --build -d --remove-orphans
+	@echo "→ App:  https://LeIA.lab.soltanov.io"
+	@echo "→ Obs:  https://obs.leia.lab.soltanov.io  (Langfuse; 1º boot demora ~1-2min)"
+
+down:  ## Para o deployment (leia + frpc + langfuse, se no ar)
+	docker compose --profile tunnel --profile langfuse down
 
 restart: down up  ## Recria o deployment
+
+# --- Observabilidade (tracing do agente) ------------------------------------
+
+obs:  ## Sobe o Langfuse (obs. de LLM) + o app → UI http://localhost:3000. Lembre: OTEL_ENABLED=true
+	docker compose --profile langfuse up -d
+	@echo "→ Langfuse subindo (1º boot demora ~1-2min: migrações). UI: http://localhost:3000"
+	@echo "  Ligue o tracing com OTEL_ENABLED=true no .env e reinicie o 'leia'."
+
+obs-stop:  ## Para o stack do Langfuse (mantém os volumes/dados)
+	docker compose --profile langfuse down
 
 logs:  ## Segue os logs do frpc ("login to server success" = túnel ok)
 	docker compose logs -f frpc
@@ -90,7 +111,9 @@ ps:  ## Estado dos containers (leia + leia-frpc)
 	docker compose --profile tunnel ps
 
 remove:  ## rm -f por nome (resolve "container name already in use")
-	@for c in leia leia-mcp leia-frpc leia-postgres; do \
+	@for c in leia leia-mcp leia-frpc leia-postgres \
+		leia-langfuse-web leia-langfuse-worker leia-langfuse-postgres \
+		leia-langfuse-clickhouse leia-langfuse-redis leia-langfuse-minio; do \
 		docker rm -f $$c >/dev/null 2>&1 && echo "removido: $$c" || true; \
 	done
 	@echo "OK (ignorados os que não existiam)"

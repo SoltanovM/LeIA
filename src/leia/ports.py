@@ -1,7 +1,7 @@
 """PORTS = interfaces (contratos). O núcleo fala com o mundo externo SÓ por aqui.
 
 Vocabulário de NEGÓCIO, sem cheiro de tecnologia: "extraia as páginas", "guarde o blob",
-"indexe pra busca" — nunca "invoke o Bedrock" ou "faça INSERT no Postgres". Cada port tem
+"indexe pra busca" - nunca "invoke o Bedrock" ou "faça INSERT no Postgres". Cada port tem
 um ou mais adapters concretos (ver pacote `adapters`); trocar de tecnologia = escrever
 outro adapter, sem tocar no domínio/service.
 
@@ -18,6 +18,7 @@ from leia.domain.models import (
     ChatMessage,
     Conversation,
     Document,
+    MemoryHit,
     Page,
     RawUpload,
     SearchHit,
@@ -56,7 +57,13 @@ class DocumentRepository(Protocol):
 
     def get_document(self, document_id: str) -> Document | None: ...
 
-    def list_documents(self) -> list[Document]: ...
+    def list_documents(self, include_archived: bool = False) -> list[Document]:
+        """Documentos. Por padrão só os ATIVOS; `include_archived=True` traz os arquivados também."""
+        ...
+
+    def set_archived(self, document_id: str, archived: bool) -> None:
+        """Arquiva/desarquiva um documento (não apaga dados; é reversível)."""
+        ...
 
     def save_pages(self, pages: list[Page]) -> None: ...
 
@@ -96,4 +103,14 @@ class ConversationStore(Protocol):
 
     def messages(self, conversation_id: str) -> list[ChatMessage]:
         """Mensagens da conversa, em ordem cronológica."""
+        ...
+
+
+class ConversationMemory(Protocol):
+    """Memória semântica ENTRE conversas: guarda trocas e recupera as relevantes (RAG)."""
+
+    def remember(self, owner: str, conversation_id: str, text: str) -> None: ...
+
+    def recall(self, query: str, k: int = 5) -> list[MemoryHit]:
+        """Os k trechos de conversas anteriores mais relevantes pra `query`."""
         ...

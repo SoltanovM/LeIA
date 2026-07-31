@@ -1,4 +1,4 @@
-"""DOMÍNIO — tipos puros da plataforma de documentos (sem infra, sem AWS).
+"""DOMÍNIO - tipos puros da plataforma de documentos (sem infra, sem AWS).
 
 Fluxo dos dados:
     RawUpload  (arquivo cru que o usuário subiu)
@@ -7,7 +7,7 @@ Fluxo dos dados:
         -> vetorização ->
     SearchHit   (trecho relevante devolvido pela busca semântica)
 
-Nada aqui conhece Bedrock/S3/Postgres — é o núcleo que os adapters servem. Regra de ouro do
+Nada aqui conhece Bedrock/S3/Postgres - é o núcleo que os adapters servem. Regra de ouro do
 hexagonal: a dependência aponta de fora PRA DENTRO (infra depende do domínio, nunca o contrário).
 """
 
@@ -65,13 +65,19 @@ class Page:
 
 @dataclass
 class Document:
-    """Metadados/manifesto de um documento (o conteúdo mora nas Pages/blob)."""
+    """Metadados/manifesto de um documento (o conteúdo mora nas Pages/blob).
+
+    `archived=True` tira o documento do fluxo ATIVO (chat/busca) sem apagar nada - os dados
+    (páginas, blob, vetores) continuam lá. É reversível: desarquivar traz de volta na hora,
+    sem reprocessar. Serve pra "limpar" a lista de processados guardando pra uso futuro.
+    """
 
     id: str
     filename: str
     content_type: str
     page_count: int = 0
     status: DocumentStatus = DocumentStatus.UPLOADED
+    archived: bool = False
 
 
 @dataclass(frozen=True)
@@ -99,3 +105,12 @@ class Conversation:
     id: str
     owner: str
     title: str
+
+
+@dataclass(frozen=True)
+class MemoryHit:
+    """Trecho relevante de uma conversa ANTERIOR (memória entre conversas)."""
+
+    conversation_id: str
+    content: str
+    score: float

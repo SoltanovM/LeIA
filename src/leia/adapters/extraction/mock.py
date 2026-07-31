@@ -1,4 +1,4 @@
-"""ADAPTER driven (offline) — extrator fake, determinístico. Roda sem AWS (backend=mock)."""
+"""ADAPTER driven (offline) - extrator fake, determinístico. Roda sem AWS (backend=mock)."""
 
 from __future__ import annotations
 

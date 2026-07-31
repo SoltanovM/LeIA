@@ -1,4 +1,4 @@
-"""ADAPTER driven — busca semântica (RAG) com Postgres + pgvector.
+"""ADAPTER driven - busca semântica (RAG) com Postgres + pgvector.
 
 Fluxo: chunka cada página -> embeda com Titan V2 (Bedrock) -> grava (content + vector).
 A busca embeda a query e traz os k chunks mais próximos (distância cosseno `<=>`; como o
@@ -53,14 +53,13 @@ class PgVectorIndex:
         """Cria a extensão, a tabela de chunks e o índice HNSW (idempotente).
 
         Conecta SEM `register_vector` de propósito: registrar o tipo `vector` exige que a
-        extensão já exista — e é exatamente ela que criamos aqui (ovo-e-galinha). Como o
+        extensão já exista - e é exatamente ela que criamos aqui (ovo-e-galinha). Como o
         init só roda DDL (não faz bind de vetor), a conexão crua basta.
         """
         dim = get_settings().embedding_dimensions
         with psycopg.connect(self._dsn) as conn, conn.cursor() as cur:
             cur.execute("CREATE EXTENSION IF NOT EXISTS vector")
-            cur.execute(
-                f"""
+            cur.execute(f"""
                 CREATE TABLE IF NOT EXISTS page_chunks (
                     id          bigserial PRIMARY KEY,
                     document_id text NOT NULL,
@@ -69,14 +68,11 @@ class PgVectorIndex:
                     content     text NOT NULL,
                     embedding   vector({dim}) NOT NULL
                 )
-                """
-            )
-            cur.execute(
-                """
+                """)
+            cur.execute("""
                 CREATE INDEX IF NOT EXISTS page_chunks_embedding_idx
                 ON page_chunks USING hnsw (embedding vector_cosine_ops)
-                """
-            )
+                """)
             conn.commit()
 
     def index(self, document_id: str, pages: list[Page]) -> int:

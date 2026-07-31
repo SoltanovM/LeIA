@@ -1,1 +1,1 @@
-"""Domínio do LeIA — dados e regras puras, sem infraestrutura."""
+"""Domínio do LeIA - dados e regras puras, sem infraestrutura."""

@@ -1,4 +1,4 @@
-"""ADAPTER driven (offline) — repositório em memória. Default do backend=mock.
+"""ADAPTER driven (offline) - repositório em memória. Default do backend=mock.
 
 Vive só enquanto o processo roda (não compartilha entre UI e MCP). Bom pra dev/test;
 em produção o adapter Postgres persiste de verdade.
@@ -25,8 +25,13 @@ class InMemoryRepository:
         doc = self._docs.get(document_id)
         return replace(doc) if doc is not None else None
 
-    def list_documents(self) -> list[Document]:
-        return [replace(doc) for doc in self._docs.values()]
+    def list_documents(self, include_archived: bool = False) -> list[Document]:
+        return [replace(doc) for doc in self._docs.values() if include_archived or not doc.archived]
+
+    def set_archived(self, document_id: str, archived: bool) -> None:
+        doc = self._docs.get(document_id)
+        if doc is not None:
+            doc.archived = archived
 
     def save_pages(self, pages: list[Page]) -> None:
         for page in pages:

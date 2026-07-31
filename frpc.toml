@@ -1,9 +1,9 @@
-# frpc.toml — túnel reverso SÓ do LeIA. Mesmo padrão dos outros apps de lab.soltanov.io.
+# frpc.toml - túnel reverso SÓ do LeIA. Mesmo padrão dos outros apps de lab.soltanov.io.
 # NADA de confidencial aqui: todos os valores sensíveis vêm do ./.env via templating
 # ({{ .Envs.X }}), que o frpc resolve antes de parsear o TOML. Assim este arquivo pode ir
 # pro git sem vazar endereço/porta/token do relay.
-serverAddr = "{{ .Envs.FRP_SERVER_ADDR }}"    # relay (IP/host) — .env: FRP_SERVER_ADDR
-serverPort = {{ .Envs.FRP_SERVER_PORT }}      # frps: canal de controle — .env: FRP_SERVER_PORT
+serverAddr = "{{ .Envs.FRP_SERVER_ADDR }}"    # relay (IP/host) - .env: FRP_SERVER_ADDR
+serverPort = {{ .Envs.FRP_SERVER_PORT }}      # frps: canal de controle - .env: FRP_SERVER_PORT
 auth.method = "token"
 auth.token = "{{ .Envs.FRP_TOKEN }}"
 
@@ -13,4 +13,14 @@ name = "leia"
 type = "tcp"
 localIP = "leia"                          # nome do container leia neste compose
 localPort = {{ .Envs.LEIA_PORT }}         # porta interna do Streamlit
-remotePort = {{ .Envs.FRP_REMOTE_PORT }}  # porta que o frps abre no relay — .env: FRP_REMOTE_PORT
+remotePort = {{ .Envs.FRP_REMOTE_PORT }}  # porta que o frps abre no relay - .env: FRP_REMOTE_PORT
+
+# Painel do Langfuse (observabilidade). Caddy: obs.leia.lab.soltanov.io → 127.0.0.1:<remotePort>.
+# Só serve se o stack langfuse estiver no ar (`make up-obs`); senão o frpc só loga "conn refused"
+# neste proxy e segue servindo o do leia normalmente.
+[[proxies]]
+name = "leia-obs"
+type = "tcp"
+localIP = "langfuse-web"                      # nome do serviço langfuse-web neste compose
+localPort = 3000                              # porta interna fixa do Langfuse (imagem oficial)
+remotePort = {{ .Envs.FRP_OBS_REMOTE_PORT }}  # porta que o frps abre no relay - .env: FRP_OBS_REMOTE_PORT

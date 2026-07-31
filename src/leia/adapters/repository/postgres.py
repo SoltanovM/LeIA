@@ -1,4 +1,4 @@
-"""ADAPTER driven — repositório no Postgres (tabelas `documents` e `pages`).
+"""ADAPTER driven - repositório no Postgres (tabelas `documents` e `pages`).
 
 Metadados/manifesto e o texto de cada página. Fica no MESMO Postgres do pgvector
 (um banco só pra metadado + vetor). `init_schema()` é idempotente (rode no `make db-init`).
@@ -24,40 +24,43 @@ class PostgresRepository:
     def init_schema(self) -> None:
         """Cria as tabelas (idempotente)."""
         with self._connect() as conn, conn.cursor() as cur:
-            cur.execute(
-                """
+            cur.execute("""
                 CREATE TABLE IF NOT EXISTS documents (
                     id           text PRIMARY KEY,
                     filename     text NOT NULL,
                     content_type text NOT NULL,
                     page_count   int  NOT NULL DEFAULT 0,
-                    status       text NOT NULL
+                    status       text NOT NULL,
+                    archived     boolean NOT NULL DEFAULT false
                 )
-                """
-            )
+                """)
+            # Migração idempotente pra bancos antigos (antes da coluna archived existir).
             cur.execute(
-                """
+                "ALTER TABLE documents ADD COLUMN IF NOT EXISTS archived"
+                " boolean NOT NULL DEFAULT false"
+            )
+            cur.execute("""
                 CREATE TABLE IF NOT EXISTS pages (
                     document_id text NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
                     number      int  NOT NULL,
                     content     text NOT NULL,
                     PRIMARY KEY (document_id, number)
                 )
-                """
-            )
+                """)
             conn.commit()
 
     def save_document(self, document: Document) -> None:
         with self._connect() as conn, conn.cursor() as cur:
             cur.execute(
                 """
-                INSERT INTO documents (id, filename, content_type, page_count, status)
-                VALUES (%s, %s, %s, %s, %s)
+                INSERT INTO documents (id, filename, content_type, page_count, status, archived)
+                VALUES (%s, %s, %s, %s, %s, %s)
                 ON CONFLICT (id) DO UPDATE SET
                     filename = EXCLUDED.filename,
                     content_type = EXCLUDED.content_type,
                     page_count = EXCLUDED.page_count,
-                    status = EXCLUDED.status
+                    status = EXCLUDED.status,
+                    archived = EXCLUDED.archived
                 """,
                 (
                     document.id,
@@ -65,6 +68,7 @@ class PostgresRepository:
                     document.content_type,
                     document.page_count,
                     str(document.status),
+                    document.archived,
                 ),
             )
             conn.commit()
@@ -72,20 +76,27 @@ class PostgresRepository:
     def get_document(self, document_id: str) -> Document | None:
         with self._connect() as conn, conn.cursor() as cur:
             cur.execute(
-                "SELECT id, filename, content_type, page_count, status"
+                "SELECT id, filename, content_type, page_count, status, archived"
                 " FROM documents WHERE id = %s",
                 (document_id,),
             )
             row = cur.fetchone()
         return _to_document(row) if row else None
 
-    def list_documents(self) -> list[Document]:
+    def list_documents(self, include_archived: bool = False) -> list[Document]:
+        clause = "" if include_archived else " WHERE archived = false"
         with self._connect() as conn, conn.cursor() as cur:
             cur.execute(
-                "SELECT id, filename, content_type, page_count, status FROM documents ORDER BY id"
+                "SELECT id, filename, content_type, page_count, status, archived"
+                f" FROM documents{clause} ORDER BY id"
             )
             rows = cur.fetchall()
         return [_to_document(row) for row in rows]
+
+    def set_archived(self, document_id: str, archived: bool) -> None:
+        with self._connect() as conn, conn.cursor() as cur:
+            cur.execute("UPDATE documents SET archived = %s WHERE id = %s", (archived, document_id))
+            conn.commit()
 
     def save_pages(self, pages: list[Page]) -> None:
         if not pages:
@@ -126,4 +137,5 @@ def _to_document(row: tuple) -> Document:
         content_type=row[2],
         page_count=row[3],
         status=DocumentStatus(row[4]),
+        archived=row[5],
     )

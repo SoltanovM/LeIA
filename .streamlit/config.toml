@@ -1,0 +1,12 @@
+# Tema do LeIA - visual limpo/profissional (índigo em vez do vermelho padrão do Streamlit).
+[theme]
+base = "light"
+primaryColor = "#6366F1"              # índigo (botões, destaques)
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F1F3F9"  # sidebar, cards, bolhas
+textColor = "#111827"
+font = "sans serif"
+
+[server]
+# Silencia a coleta de estatísticas de uso.
+gatherUsageStats = false

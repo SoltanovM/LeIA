@@ -1,4 +1,4 @@
-"""ADAPTER driven — blob store no Amazon S3. Resultado por página vira presigned URL."""
+"""ADAPTER driven - blob store no Amazon S3. Resultado por página vira presigned URL."""
 
 from __future__ import annotations
 

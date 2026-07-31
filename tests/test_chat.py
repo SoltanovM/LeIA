@@ -1,8 +1,9 @@
-"""Testa o ChatService com o store de conversas em memória — SEM Postgres."""
+"""Testa o ChatService com o store de conversas em memória - SEM Postgres."""
 
 from __future__ import annotations
 
 from leia.adapters.conversation.memory import InMemoryConversationStore
+from leia.adapters.conversation_memory.mock import InMemoryConversationMemory
 from leia.chat.service import ChatService
 
 
@@ -58,3 +59,41 @@ def test_rename_e_delete() -> None:
 
     chat.delete(conv.id)
     assert chat.get(conv.id) is None
+
+
+def test_titulo_heuristico_na_primeira_pergunta() -> None:
+    chat = _service()  # titler=None -> heurística (primeira linha da pergunta)
+    conv = chat.new_conversation("matt", "Nova conversa")
+
+    chat.send(conv.id, "Qual é o prazo de entrega do contrato?")
+
+    got = chat.get(conv.id)
+    assert got is not None
+    assert got.title.startswith("Qual é o prazo")
+
+
+def test_titler_injetado_nomeia_conversa() -> None:
+    chat = ChatService(
+        conversations=InMemoryConversationStore(),
+        titler=lambda q: "Título Gerado",
+    )
+    conv = chat.new_conversation("matt")
+
+    chat.send(conv.id, "uma pergunta qualquer bem longa que seria cortada na heurística")
+
+    got = chat.get(conv.id)
+    assert got is not None
+    assert got.title == "Título Gerado"
+
+
+def test_memoria_indexa_e_recupera_a_troca() -> None:
+    memory = InMemoryConversationMemory()
+    chat = ChatService(conversations=InMemoryConversationStore(), memory=memory)
+    conv = chat.new_conversation("matt")
+
+    chat.send(conv.id, "Qual o valor do contrato XYZ?")
+
+    hits = memory.recall("contrato XYZ")
+    assert hits
+    assert "contrato" in hits[0].content.lower()
+    assert hits[0].conversation_id == conv.id

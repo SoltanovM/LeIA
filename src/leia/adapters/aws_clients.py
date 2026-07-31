@@ -1,4 +1,4 @@
-"""Fábrica de clients boto3 — ponto único onde os clients AWS nascem.
+"""Fábrica de clients boto3 - ponto único onde os clients AWS nascem.
 
 Memoizados com `lru_cache` (criar client boto3 é caro; o client é reusável). Credenciais
 vêm da cadeia padrão do boto3 (AWS_PROFILE/SSO local, role em prod). `aws_endpoint_url`

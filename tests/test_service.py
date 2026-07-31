@@ -1,7 +1,7 @@
-"""Testa o CASO DE USO (`LeiaService.ingest`) com adapters MOCK — SEM AWS/Postgres.
+"""Testa o CASO DE USO (`LeiaService.ingest`) com adapters MOCK - SEM AWS/Postgres.
 
 Prova o benefício central do hexagonal: o núcleo é testável isoladamente. Usamos os adapters
-mock reais (extractor/repo/vetor) + um blob em memória — nada de boto3, psycopg ou rede.
+mock reais (extractor/repo/vetor) + um blob em memória - nada de boto3, psycopg ou rede.
 """
 
 from __future__ import annotations
@@ -87,9 +87,7 @@ def test_ingest_falha_na_extracao_marca_failed() -> None:
 
     blob = _MemBlob()
     repo = InMemoryRepository()
-    service = LeiaService(
-        extractor=_Boom(), blob=blob, repo=repo, vectorizer=MockVectorIndex()
-    )
+    service = LeiaService(extractor=_Boom(), blob=blob, repo=repo, vectorizer=MockVectorIndex())
 
     with pytest.raises(RuntimeError):
         service.ingest(RawUpload("x.pdf", b"%PDF"))
@@ -102,3 +100,41 @@ def test_content_type_for() -> None:
     assert content_type_for("PDF") == "application/pdf"
     assert content_type_for("jpg") == "image/jpeg"
     assert content_type_for("desconhecido") == "application/octet-stream"
+
+
+def test_arquivar_tira_do_fluxo_ativo_sem_apagar_dados() -> None:
+    service, _ = _service()
+    doc = service.ingest(RawUpload("contrato.pdf", b"%PDF-1.4"))
+
+    # ativo: aparece na lista e a busca global (chat) encontra.
+    assert [d.id for d in service.list_documents()] == [doc.id]
+    assert service.search("MOCK")
+
+    service.archive_document(doc.id)
+
+    # arquivado: some do fluxo ATIVO (lista/chat/busca global) mas os dados FICAM.
+    assert service.list_documents() == []
+    assert [d.id for d in service.list_documents(include_archived=True)] == [doc.id]
+    assert service.get_document(doc.id) is not None  # metadados preservados
+    assert service.get_pages(doc.id)  # páginas preservadas (não reprocessa ao voltar)
+    assert service.resolve_document("contrato.pdf") is None  # chat não alcança
+    assert service.search("MOCK") == []  # busca global (chat) ignora arquivados
+    # busca DIRECIONADA a um doc específico ainda funciona (inspeção na UI).
+    assert service.search("MOCK", document_id=doc.id)
+
+    service.unarchive_document(doc.id)  # reverter: volta ativo, sem reprocessar.
+    assert [d.id for d in service.list_documents()] == [doc.id]
+    assert service.resolve_document("contrato.pdf") == doc.id
+    assert service.search("MOCK")
+
+
+def test_resolve_document_fuzzy() -> None:
+    service, _ = _service()
+    doc = service.ingest(RawUpload("job-description.pdf", b"%PDF-1.4"))
+
+    assert service.resolve_document(doc.id) == doc.id  # id exato
+    assert service.resolve_document("job-description.pdf") == doc.id  # nome exato
+    assert service.resolve_document("job description") == doc.id  # espaço no lugar do hífen
+    assert service.resolve_document("jobdescription") == doc.id  # sem extensão/separador
+    assert service.resolve_document("JOB-DESCRIPTION.PDF") == doc.id  # caixa alta
+    assert service.resolve_document("relatorio totalmente diferente") is None
