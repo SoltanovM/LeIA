@@ -230,6 +230,7 @@ services:
       - FRP_SERVER_ADDR=${FRP_SERVER_ADDR}
       - FRP_SERVER_PORT=${FRP_SERVER_PORT}
       - FRP_REMOTE_PORT=${FRP_REMOTE_PORT}
+      - FRP_OBS_REMOTE_PORT=${FRP_OBS_REMOTE_PORT}   # porta do painel Langfuse no relay
       - FRP_TOKEN=${FRP_TOKEN}
       - LEIA_PORT=${LEIA_PORT}
     volumes:
