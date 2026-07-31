@@ -12,7 +12,9 @@ auth.token = "{{ .Envs.FRP_TOKEN }}"
 # cairia ("i/o deadline reached" → 502). Subimos pra 180s pra aguentar o pico sem dropar.
 transport.heartbeatInterval = 30
 transport.heartbeatTimeout = 180
-transport.dialServerTimeout = 15
+# dialServerTimeout: tempo pra completar o dial+login no relay. Subimos p/ 30s porque, num
+# uplink de casa saturado/lossy, a RECONEXÃO estourava o padrão ("i/o deadline reached").
+transport.dialServerTimeout = 30
 
 # name e remotePort precisam ser ÚNICOS no relay. Caddy: LeIA.lab.soltanov.io → 127.0.0.1:<remotePort>.
 [[proxies]]
