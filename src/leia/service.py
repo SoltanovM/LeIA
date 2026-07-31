@@ -185,6 +185,20 @@ class LeiaService:
         """Devolve o documento arquivado ao fluxo ativo, sem reprocessar."""
         self.repo.set_archived(document_id, False)
 
+    def delete_document(self, document_id: str) -> None:
+        """Exclui o documento e TUDO relacionado (vetores, blobs, páginas, metadados).
+
+        IRREVERSÍVEL. Ordem: vetores -> blobs -> metadados. O blob é best-effort (se já
+        sumiu, não é erro fatal). Diferente de `archive`, aqui os dados vão embora de vez.
+        """
+        self.vectorizer.delete(document_id)
+        try:
+            self.blob.delete_prefix(f"{document_id}/")
+        except Exception:  # noqa: BLE001 - blob ausente não deve travar a exclusão do resto
+            logger.warning("Blob do documento %s não pôde ser apagado (seguindo).", document_id)
+        self.repo.delete_document(document_id)
+        logger.info("Documento %s excluído (vetores, blobs e metadados).", document_id)
+
     def get_page(self, document_id: str, number: int) -> Page | None:
         return self.repo.get_page(document_id, number)
 

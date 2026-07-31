@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 
 from leia.config import get_settings
@@ -27,3 +28,11 @@ class FilesystemBlobStore:
     def url(self, key: str) -> str:
         """Caminho local como file:// URI (baixável direto no navegador/dev)."""
         return self._path(key).resolve().as_uri()
+
+    def delete_prefix(self, prefix: str) -> None:
+        """Apaga a pasta (ou arquivo) sob `prefix`. No LeIA, `prefix='<id>/'` = pasta do doc."""
+        target = self._path(prefix)
+        if target.is_dir():
+            shutil.rmtree(target, ignore_errors=True)
+        elif target.exists():
+            target.unlink()

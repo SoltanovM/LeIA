@@ -16,10 +16,14 @@ páginas é preservada; o progresso conta as CONCLUÍDAS (monotônico, mesmo ter
 from __future__ import annotations
 
 import io
+import logging
+import random
 import re
+import time
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+from botocore.exceptions import ClientError
 from pypdf import PdfReader, PdfWriter
 
 from leia.adapters.aws_clients import bedrock_runtime
@@ -27,8 +31,23 @@ from leia.config import get_settings
 from leia.domain.models import RawUpload
 from leia.prompts import EXTRACTION_SYSTEM_PROMPT
 
+logger = logging.getLogger(__name__)
+
 # Extensão -> `format` que a Converse espera.
 _IMAGE_FORMATS = {"png": "png", "jpg": "jpeg", "jpeg": "jpeg"}
+
+# Erros do Bedrock que valem RETENTAR (transitórios do lado do serviço). A própria API pede
+# "try your request again". Erros de input (validação, doc inválido) NÃO entram aqui - retry
+# neles só gastaria tempo/custo repetindo a mesma falha.
+_RETRYABLE_ERRORS = frozenset(
+    {
+        "ModelErrorException",  # "unexpected error during processing" - transitório
+        "ThrottlingException",  # quota de TPS estourada (comum com muitos workers)
+        "ServiceUnavailableException",
+        "InternalServerException",
+        "ModelTimeoutException",
+    }
+)
 
 
 def _safe_name(filename: str) -> str:
@@ -60,6 +79,7 @@ class BedrockExtractor:
         self._max_tokens = settings.bedrock_max_tokens
         self._temperature = settings.bedrock_temperature
         self._max_workers = max(1, settings.extraction_max_workers)
+        self._max_retries = max(1, settings.extraction_max_retries)
         self._client = bedrock_runtime()
 
     def extract(
@@ -106,15 +126,38 @@ class BedrockExtractor:
         raise ValueError(f"Extensão não suportada: {ext!r} (use PDF, PNG ou JPG).")
 
     def _transcribe(self, block: dict) -> str:
-        resp = self._client.converse(
-            modelId=self._model_id,
-            system=[{"text": EXTRACTION_SYSTEM_PROMPT}],
-            messages=[
-                {
-                    "role": "user",
-                    "content": [block, {"text": "Transcreva o conteúdo desta página."}],
-                }
-            ],
-            inferenceConfig={"maxTokens": self._max_tokens, "temperature": self._temperature},
-        )
-        return resp["output"]["message"]["content"][0]["text"].strip()
+        """Transcreve uma página, retentando em erros TRANSITÓRIOS do Bedrock (backoff exp.)."""
+        for attempt in range(1, self._max_retries + 1):
+            try:
+                resp = self._client.converse(
+                    modelId=self._model_id,
+                    system=[{"text": EXTRACTION_SYSTEM_PROMPT}],
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": [block, {"text": "Transcreva o conteúdo desta página."}],
+                        }
+                    ],
+                    inferenceConfig={
+                        "maxTokens": self._max_tokens,
+                        "temperature": self._temperature,
+                    },
+                )
+                return resp["output"]["message"]["content"][0]["text"].strip()
+            except ClientError as exc:
+                code = exc.response.get("Error", {}).get("Code", "")
+                # Erro não-transitório OU acabou o orçamento de tentativas -> propaga (falha a página).
+                if code not in _RETRYABLE_ERRORS or attempt == self._max_retries:
+                    raise
+                # Backoff exponencial com jitter (evita todos os workers baterem juntos de novo).
+                delay = min(2.0**attempt, 20.0) + random.uniform(0, 0.5)
+                logger.warning(
+                    "Bedrock %s (tentativa %d/%d) - retentando em %.1fs",
+                    code,
+                    attempt,
+                    self._max_retries,
+                    delay,
+                )
+                time.sleep(delay)
+        # Inalcançável (o loop retorna ou levanta), mas satisfaz o type checker.
+        raise RuntimeError("retry esgotado sem resultado nem exceção")

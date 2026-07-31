@@ -94,6 +94,12 @@ def _sidebar_upload(service: LeiaService) -> str | None:
             # `st.status` já é recolhível; e a linha de passo é SOBRESCRITA (st.empty), então
             # a sidebar não cresce mesmo num PDF de centenas de páginas (não acumula linhas).
             with st.status(f"Processando {uploaded.name}…", expanded=True) as status:
+                # A extração roda junto com esta tela (síncrona) - trocar de página a interrompe.
+                st.warning(
+                    "Não troque de página até terminar: a extração roda junto com esta tela e "
+                    "seria interrompida (o documento ficaria incompleto).",
+                    icon="⚠️",
+                )
                 col_bar, col_eta = st.columns([3, 1], vertical_alignment="center")
                 bar = col_bar.progress(0)
                 eta_box = col_eta.empty()
@@ -182,12 +188,20 @@ def _archived_section(service: LeiaService) -> None:
     with st.expander(f"🗄️ Arquivados ({len(archived)})"):
         st.caption("Fora do chat e da busca. Os dados continuam salvos - desarquive pra usar.")
         for d in archived:
-            col_name, col_btn = st.columns([3, 1])
+            col_name, col_unarch, col_del = st.columns([3, 1, 1], vertical_alignment="center")
             col_name.markdown(f"{d.filename}  \n:gray[{d.page_count}p]")
-            if col_btn.button("♻️", key=f"unarch-{d.id}", help="Desarquivar"):
+            if col_unarch.button("♻️", key=f"unarch-{d.id}", help="Desarquivar"):
                 service.unarchive_document(d.id)
                 st.toast(f"♻️ '{d.filename}' desarquivado.", icon="♻️")
                 st.rerun()
+            # Exclusão é destrutiva -> popover de confirmação (evita apagar por engano).
+            with col_del.popover("🗑️", help="Excluir definitivamente"):
+                st.markdown(f"Excluir **{d.filename}** e **todos** os dados (páginas, vetores)?")
+                st.caption("Não dá pra desfazer. Precisaria reprocessar o documento do zero.")
+                if st.button("Excluir definitivamente", key=f"del-{d.id}", type="primary"):
+                    service.delete_document(d.id)
+                    st.toast(f"🗑️ '{d.filename}' excluído.", icon="🗑️")
+                    st.rerun()
 
 
 def render() -> None:

@@ -60,6 +60,22 @@ reverso (frp)** disca *pra fora*, até um **relay na AWS** (frps + Caddy), que p
 HTTPS - sem abrir porta na rede local.
 """
 
+_ROADMAP = """
+Engenharia honesta é conhecer os próprios limites. Um ponto em aberto hoje:
+
+**Extração acoplada à UI.** Hoje a extração roda de forma **síncrona**, dentro do *run* do
+Streamlit: o upload dispara o processamento na mesma requisição que desenha a tela. Como o
+Streamlit é *single-thread* por sessão, **navegar pra outra página durante a extração pode
+interrompê-la** (o documento fica incompleto e o custo de LLM já gasto se perde). Mitigação
+atual: aguardar na aba de Documentos até concluir.
+
+**Próximo passo - worker assíncrono (desacoplar da UI).** O upload passa a apenas **enfileirar**
+o trabalho; um **worker** em segundo plano processa e grava o status no Postgres; a UI só faz
+**polling** do status. Assim o usuário navega à vontade e a extração continua no servidor. Em
+nível *cloud*, isso vira **fila (SQS/EventBridge) + worker (ECS/Lambda)** - event-driven de
+verdade, que é o que uma plataforma de IA escalável pede.
+"""
+
 _OBS = f"""
 Num sistema com **agente de IA**, a resposta final esconde o mais interessante: *como* o agente
 chegou nela. Qual ferramenta ele decidiu chamar? Com quais argumentos? Quantos tokens custou?
@@ -107,6 +123,9 @@ def render() -> None:
 
     st.subheader("🔭 Observabilidade")
     st.markdown(_OBS)
+
+    st.subheader("🚧 Limitações & próximos passos")
+    st.markdown(_ROADMAP)
 
     st.subheader("✅ Qualidade")
     st.markdown("Núcleo testável sem AWS (adapters mock) - `ruff` + `mypy` + `pytest` no CI local.")

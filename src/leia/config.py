@@ -59,6 +59,9 @@ class Settings(BaseSettings):
     # Páginas transcritas EM PARALELO (I/O-bound: 1 chamada Bedrock/página). Cap por causa
     # da quota de TPS do Bedrock (muitos em paralelo = ThrottlingException). 1 = sequencial.
     extraction_max_workers: int = 4
+    # Tentativas por página quando o Bedrock devolve erro TRANSITÓRIO (ModelError/Throttling/
+    # 5xx - "try your request again"). Backoff exponencial entre elas. 1 = sem retry.
+    extraction_max_retries: int = 4
 
     # Embeddings (Titan V2 first-party) - usados pelo Vectorizer pgvector.
     bedrock_embedding_model_id: str = "amazon.titan-embed-text-v2:0"

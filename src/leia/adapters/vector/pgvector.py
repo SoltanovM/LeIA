@@ -91,6 +91,11 @@ class PgVectorIndex:
             conn.commit()
         return count
 
+    def delete(self, document_id: str) -> None:
+        with self._connect() as conn, conn.cursor() as cur:
+            cur.execute("DELETE FROM page_chunks WHERE document_id = %s", (document_id,))
+            conn.commit()
+
     def search(self, query: str, k: int = 5, document_id: str | None = None) -> list[SearchHit]:
         query_embedding = _embed(query)
         sql = (

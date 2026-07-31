@@ -49,6 +49,10 @@ class BlobStore(Protocol):
         """URL/caminho pra baixar o objeto (presigned no S3, path no filesystem)."""
         ...
 
+    def delete_prefix(self, prefix: str) -> None:
+        """Apaga TODOS os objetos sob `prefix` (ex.: '<id>/' = arquivo cru + páginas)."""
+        ...
+
 
 class DocumentRepository(Protocol):
     """Persiste o manifesto do documento e o texto de cada página (metadados)."""
@@ -65,6 +69,10 @@ class DocumentRepository(Protocol):
         """Arquiva/desarquiva um documento (não apaga dados; é reversível)."""
         ...
 
+    def delete_document(self, document_id: str) -> None:
+        """Apaga o documento e suas páginas PERMANENTEMENTE (irreversível)."""
+        ...
+
     def save_pages(self, pages: list[Page]) -> None: ...
 
     def get_page(self, document_id: str, number: int) -> Page | None: ...
@@ -77,6 +85,10 @@ class Vectorizer(Protocol):
 
     def index(self, document_id: str, pages: list[Page]) -> int:
         """Indexa as páginas do documento; devolve quantos trechos foram gravados."""
+        ...
+
+    def delete(self, document_id: str) -> None:
+        """Remove do índice todos os trechos do documento."""
         ...
 
     def search(self, query: str, k: int = 5, document_id: str | None = None) -> list[SearchHit]:

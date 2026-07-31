@@ -32,6 +32,10 @@ class _MemBlob:
     def url(self, key: str) -> str:
         return f"mem://{key}"
 
+    def delete_prefix(self, prefix: str) -> None:
+        for key in [k for k in self.store if k.startswith(prefix)]:
+            del self.store[key]
+
 
 def _service() -> tuple[LeiaService, _MemBlob]:
     blob = _MemBlob()
@@ -126,6 +130,26 @@ def test_arquivar_tira_do_fluxo_ativo_sem_apagar_dados() -> None:
     assert [d.id for d in service.list_documents()] == [doc.id]
     assert service.resolve_document("contrato.pdf") == doc.id
     assert service.search("MOCK")
+
+
+def test_excluir_documento_apaga_tudo_relacionado() -> None:
+    service, blob = _service()
+    doc = service.ingest(RawUpload("contrato.pdf", b"%PDF-1.4"))
+
+    # antes: existe em toda parte (metadados, páginas, blobs, índice).
+    assert service.get_document(doc.id) is not None
+    assert service.get_pages(doc.id)
+    assert any(k.startswith(f"{doc.id}/") for k in blob.store)
+    assert service.search("MOCK", document_id=doc.id)
+
+    service.delete_document(doc.id)
+
+    # depois: sumiu de TUDO (irreversível, diferente do arquivar).
+    assert service.get_document(doc.id) is None
+    assert service.get_pages(doc.id) == []
+    assert not any(k.startswith(f"{doc.id}/") for k in blob.store)  # blobs apagados
+    assert service.search("MOCK", document_id=doc.id) == []  # vetores apagados
+    assert service.list_documents(include_archived=True) == []  # nem como arquivado
 
 
 def test_resolve_document_fuzzy() -> None:

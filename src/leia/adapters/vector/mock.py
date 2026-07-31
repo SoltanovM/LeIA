@@ -20,6 +20,9 @@ class MockVectorIndex:
         self._pages.extend(pages)
         return len(pages)
 
+    def delete(self, document_id: str) -> None:
+        self._pages = [p for p in self._pages if p.document_id != document_id]
+
     def search(self, query: str, k: int = 5, document_id: str | None = None) -> list[SearchHit]:
         terms = [t for t in query.lower().split() if t]
         hits: list[SearchHit] = []

@@ -33,6 +33,10 @@ class InMemoryRepository:
         if doc is not None:
             doc.archived = archived
 
+    def delete_document(self, document_id: str) -> None:
+        self._docs.pop(document_id, None)
+        self._pages.pop(document_id, None)
+
     def save_pages(self, pages: list[Page]) -> None:
         for page in pages:
             self._pages.setdefault(page.document_id, {})[page.number] = page

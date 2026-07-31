@@ -98,6 +98,12 @@ class PostgresRepository:
             cur.execute("UPDATE documents SET archived = %s WHERE id = %s", (archived, document_id))
             conn.commit()
 
+    def delete_document(self, document_id: str) -> None:
+        # As páginas somem junto pelo ON DELETE CASCADE da FK (ver init_schema).
+        with self._connect() as conn, conn.cursor() as cur:
+            cur.execute("DELETE FROM documents WHERE id = %s", (document_id,))
+            conn.commit()
+
     def save_pages(self, pages: list[Page]) -> None:
         if not pages:
             return
