@@ -7,6 +7,13 @@ serverPort = {{ .Envs.FRP_SERVER_PORT }}      # frps: canal de controle - .env: 
 auth.method = "token"
 auth.token = "{{ .Envs.FRP_TOKEN }}"
 
+# Folga de heartbeat: sob carga pesada (extração de doc grande em paralelo) a máquina fica
+# saturada e o frpc pode não mandar o heartbeat a tempo. Com o timeout padrão (90s) o túnel
+# cairia ("i/o deadline reached" → 502). Subimos pra 180s pra aguentar o pico sem dropar.
+transport.heartbeatInterval = 30
+transport.heartbeatTimeout = 180
+transport.dialServerTimeout = 15
+
 # name e remotePort precisam ser ÚNICOS no relay. Caddy: LeIA.lab.soltanov.io → 127.0.0.1:<remotePort>.
 [[proxies]]
 name = "leia"
