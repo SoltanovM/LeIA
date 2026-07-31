@@ -7,6 +7,12 @@ serverPort = {{ .Envs.FRP_SERVER_PORT }}      # frps: canal de controle - .env: 
 auth.method = "token"
 auth.token = "{{ .Envs.FRP_TOKEN }}"
 
+# KCP (sobre UDP) no lugar do TCP puro: link residencial (CGNAT/perda de pacote) derrubava a
+# conexão de controle ("i/o deadline reached"); o KCP retransmite e aguenta muito melhor.
+# EXIGE no relay: `kcpBindPort = 7000` no frps.toml + firewall liberando UDP 7000. Usa a mesma
+# serverPort (7000), só que UDP. Alternativa mais nova: "quic" (+ quicBindPort no frps).
+transport.protocol = "kcp"
+
 # Folga de heartbeat: sob carga pesada (extração de doc grande em paralelo) a máquina fica
 # saturada e o frpc pode não mandar o heartbeat a tempo. Com o timeout padrão (90s) o túnel
 # cairia ("i/o deadline reached" → 502). Subimos pra 180s pra aguentar o pico sem dropar.
