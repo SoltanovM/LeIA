@@ -22,6 +22,7 @@ dependencies = [
     "opentelemetry-sdk>=1.20",
     "opentelemetry-exporter-otlp-proto-http>=1.20",
     "openinference-instrumentation-langchain>=0.1",
+    "opensearch-py>=3.2.0",
 ]
 
 # Console scripts (modo --package): a UI, o servidor MCP e o init do banco.
@@ -51,5 +52,4 @@ packages = ["leia"]
 ignore_missing_imports = true  # boto3/streamlit/pgvector sem stubs completos
 
 [tool.pytest.ini_options]
-# Coleta só os testes do LeIA (evita varrer _reference/ do credit_ai arquivado).
 testpaths = ["tests"]
