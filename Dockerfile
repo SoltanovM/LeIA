@@ -1,13 +1,14 @@
 # LeIA - imagem do app. Instala o pacote com uv (mesmo tooling do projeto, learning 01/03).
 FROM python:3.12-slim
 
-# uv: gerenciador de pacotes rápido, copiado do binário oficial.
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+# uv: gerenciador de pacotes rápido, copiado do binário oficial (versão FIXA = build reproduzível).
+COPY --from=ghcr.io/astral-sh/uv:0.11.29 /uv /usr/local/bin/uv
 
 WORKDIR /app
 
 # Copia o necessário pra buildar o pacote e instala (traz streamlit/boto3/pydantic-settings
-# + o console script `leia`). `--system` = instala no Python do container, sem venv.
+# + o console script `leia`). 
+# `--system` = instala no Python do container, sem venv.
 COPY pyproject.toml README.md ./
 COPY src ./src
 COPY .streamlit ./.streamlit
