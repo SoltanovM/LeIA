@@ -1,6 +1,6 @@
 """COMPOSITION ROOT - o ÚNICO lugar que conhece os adapters concretos.
 
-Decide QUAL conjunto de adapters injetar (por `BACKEND` no `.env`) e monta o `LeiaService`.
+Decide QUAL conjunto de adapters injetar (por `ADAPTERS` no `.env`) e monta o `LeiaService`.
 É aqui, e só aqui, que "infra encontra negócio" - o domínio continua sem saber de nada.
 
 Imports LAZY (dentro do if): o modo `mock` sobe sem sequer importar boto3/psycopg - a UI
@@ -10,7 +10,7 @@ roda 100%% offline.
 from __future__ import annotations
 
 from leia.chat.service import ChatService
-from leia.config import BackendName, get_settings
+from leia.config import AdapterSet, get_settings
 from leia.ports import ConversationMemory
 from leia.service import LeiaService
 
@@ -18,7 +18,7 @@ from leia.service import LeiaService
 def build_conversation_memory() -> ConversationMemory:
     """Memória entre conversas (Stage 5). Usado pelo ChatService e pela tool MCP."""
     settings = get_settings()
-    if settings.backend is BackendName.AWS:
+    if settings.adapters is AdapterSet.AWS:
         from leia.adapters.conversation_memory.pgvector import PgVectorConversationMemory
 
         memory = PgVectorConversationMemory()
@@ -34,7 +34,7 @@ def build_service() -> LeiaService:
     """Monta o service com o conjunto de adapters escolhido por configuração."""
     settings = get_settings()
 
-    if settings.backend is BackendName.AWS:
+    if settings.adapters is AdapterSet.AWS:
         from leia.adapters.blob.s3 import S3BlobStore
         from leia.adapters.extraction.bedrock import BedrockExtractor
         from leia.adapters.repository.postgres import PostgresRepository
@@ -68,13 +68,13 @@ def build_service() -> LeiaService:
 
 
 def build_chat_service() -> ChatService:
-    """Monta o `ChatService` com o store de conversas do backend escolhido.
+    """Monta o `ChatService` com o store de conversas do conjunto de adapters escolhido.
 
     Na Stage 3 este é o ponto onde o `answerer` (agente LangGraph via MCP) será injetado.
     """
     settings = get_settings()
 
-    if settings.backend is BackendName.AWS:
+    if settings.adapters is AdapterSet.AWS:
         from leia.adapters.conversation.postgres import PostgresConversationStore
         from leia.agent.document_agent import DocumentAgent
         from leia.agent.titler import BedrockTitler

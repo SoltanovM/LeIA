@@ -1,4 +1,4 @@
-"""ADAPTER driven (offline) - blob store em disco local. Default do backend=mock."""
+"""ADAPTER driven (offline) - blob store em disco local. Default do ADAPTERS=mock."""
 
 from __future__ import annotations
 

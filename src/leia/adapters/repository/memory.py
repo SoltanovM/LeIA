@@ -1,4 +1,4 @@
-"""ADAPTER driven (offline) - repositório em memória. Default do backend=mock.
+"""ADAPTER driven (offline) - repositório em memória. Default do ADAPTERS=mock.
 
 Vive só enquanto o processo roda (não compartilha entre UI e MCP). Bom pra dev/test;
 em produção o adapter Postgres persiste de verdade.

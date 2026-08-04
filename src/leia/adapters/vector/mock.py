@@ -1,4 +1,4 @@
-"""ADAPTER driven (offline) - busca por palavra-chave em memória. Default do backend=mock.
+"""ADAPTER driven (offline) - busca por palavra-chave em memória. Default do ADAPTERS=mock.
 
 Não é embedding de verdade: pontua por ocorrência dos termos. Serve pra rodar a busca sem
 AWS/Postgres. O adapter pgvector faz a busca semântica real.

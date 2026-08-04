@@ -11,8 +11,8 @@ MCP_TRANSPORT=stdio.
 Rodar (HTTP):    uv run leia-mcp           (ou: make mcp)  -> http://localhost:8087/mcp
 Inspecionar:     uv run mcp dev src/leia/mcp/server.py
 
-Obs.: no backend=mock o repositório é em memória (por processo) - este servidor não vê os
-documentos que a UI ingeriu. Use backend=aws (Postgres) pra compartilhar estado.
+Obs.: no ADAPTERS=mock o repositório é em memória (por processo) - este servidor não vê os
+documentos que a UI ingeriu. Use ADAPTERS=aws (Postgres) pra compartilhar estado.
 """
 
 from __future__ import annotations

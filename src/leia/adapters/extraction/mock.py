@@ -1,4 +1,4 @@
-"""ADAPTER driven (offline) - extrator fake, determinístico. Roda sem AWS (backend=mock)."""
+"""ADAPTER driven (offline) - extrator fake, determinístico. Roda sem AWS (ADAPTERS=mock)."""
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ class MockExtractor:
         else:
             texts = [
                 f"[MOCK] Página {i} de '{upload.filename}' ({len(upload.data)} bytes).\n"
-                "Defina BACKEND=aws no .env para extração real via Amazon Bedrock."
+                "Defina ADAPTERS=aws no .env para extração real via Amazon Bedrock."
                 for i in range(1, 4)
             ]
         total = len(texts)

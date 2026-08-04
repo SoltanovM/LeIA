@@ -27,9 +27,9 @@ Trocar de tecnologia = escrever outro **adapter**, sem tocar no domínio.
 | **Ports** | DocumentExtractor · BlobStore · DocumentRepository · Vectorizer · ConversationStore · ConversationMemory |
 | **Adapters driven** | mock (offline) · Bedrock · S3 · Postgres/pgvector |
 | **Adapters driving** | Streamlit (UI) · MCP server · agente LangGraph |
-| **Composition root** | `factory` - escolhe os adapters por `BACKEND` (mock \\| aws) |
+| **Composition root** | `factory` - escolhe os adapters por `ADAPTERS` (mock \\| aws) |
 
-O interruptor `BACKEND=mock` roda tudo offline; `BACKEND=aws` liga Bedrock + S3 + Postgres.
+O interruptor `ADAPTERS=mock` roda tudo offline; `ADAPTERS=aws` liga Bedrock + S3 + Postgres.
 O swap é a "prova viva" de ports/adapters - o núcleo não muda uma linha.
 """
 

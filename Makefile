@@ -1,4 +1,4 @@
-# Makefile - atalhos do LeIA (veja learnings 04-comandos-do-projeto e 06-qualidade).
+# Makefile - atalhos do LeIA.
 # Rode `make` (ou `make help`) pra ver os comandos.
 #
 # Um docker-compose.yml (leia + postgres + frpc atrás do profile `tunnel`):
@@ -15,7 +15,7 @@ LEIA_PORT ?= 8086
         obs obs-stop
 
 help:  ## Lista os comandos disponíveis
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(firstword $(MAKEFILE_LIST)) \
 		| awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
 
 # --- Desenvolvimento (sem Docker) -------------------------------------------
@@ -23,18 +23,18 @@ help:  ## Lista os comandos disponíveis
 install:  ## Cria o venv e instala deps + projeto (editável)
 	uv sync
 
-run:  ## Sobe a UI Streamlit local via uv (backend do .env; default mock)
+run:  ## Sobe a UI Streamlit local via uv (adapters do .env; default mock)
 	uv run leia
 
-run-aws:  ## Sobe a UI forçando BACKEND=aws (precisa de AWS + Postgres no ar)
-	BACKEND=aws uv run leia
+run-aws:  ## Sobe a UI forçando ADAPTERS=aws (precisa de AWS + Postgres no ar)
+	ADAPTERS=aws uv run leia
 
 mcp:  ## Sobe o servidor MCP (stdio) - tools do LeIA
 	uv run leia-mcp
 
 # --- Banco (Postgres/pgvector) ----------------------------------------------
 
-db:  ## Sobe só o Postgres (dev local, backend=aws sem Docker do app)
+db:  ## Sobe só o Postgres (dev local, ADAPTERS=aws sem Docker do app)
 	docker compose up -d postgres
 	@echo "→ Postgres em localhost:5432 (user/db: leia)"
 
@@ -71,9 +71,9 @@ test-logs:  ## Segue os logs do leia (teste local)
 
 # --- Deploy real: leia + frpc (túnel reverso pro relay) ---------------------
 
-up:  ## Deploy: leia + frpc (túnel). Exige BACKEND=aws e ./.env com FRP_TOKEN.
+up:  ## Deploy: leia + frpc (túnel). Exige ADAPTERS=aws e ./.env com FRP_TOKEN.
 	@[ -f .env ] || { echo "ERRO: falta ./.env (cp .env.example .env e preencha)"; exit 1; }
-	@[ "$(BACKEND)" = "aws" ] || { echo "ERRO: deploy exige BACKEND=aws no .env (atual: '$(BACKEND)'). Mock NÃO vai pra produção."; exit 1; }
+	@[ "$(ADAPTERS)" = "aws" ] || { echo "ERRO: deploy exige ADAPTERS=aws no .env (atual: '$(ADAPTERS)'). Mock NÃO vai pra produção."; exit 1; }
 	@[ -n "$(FRP_TOKEN)" ] || { echo "ERRO: FRP_TOKEN vazio no .env (necessário pro túnel)."; exit 1; }
 	@$(MAKE) --no-print-directory remove
 	docker compose --profile tunnel up --build -d --remove-orphans
@@ -81,7 +81,7 @@ up:  ## Deploy: leia + frpc (túnel). Exige BACKEND=aws e ./.env com FRP_TOKEN.
 
 up-obs:  ## Deploy + painel Langfuse público (obs.leia.lab.soltanov.io). Exige FRP_OBS_REMOTE_PORT.
 	@[ -f .env ] || { echo "ERRO: falta ./.env (cp .env.example .env e preencha)"; exit 1; }
-	@[ "$(BACKEND)" = "aws" ] || { echo "ERRO: deploy exige BACKEND=aws no .env (atual: '$(BACKEND)')."; exit 1; }
+	@[ "$(ADAPTERS)" = "aws" ] || { echo "ERRO: deploy exige ADAPTERS=aws no .env (atual: '$(ADAPTERS)')."; exit 1; }
 	@[ -n "$(FRP_TOKEN)" ] || { echo "ERRO: FRP_TOKEN vazio no .env (necessário pro túnel)."; exit 1; }
 	@[ -n "$(FRP_OBS_REMOTE_PORT)" ] || { echo "ERRO: FRP_OBS_REMOTE_PORT vazio no .env (porta do obs no relay)."; exit 1; }
 	@$(MAKE) --no-print-directory remove

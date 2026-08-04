@@ -3,7 +3,7 @@
 `BaseSettings` lê os valores nesta ordem: 1) variáveis de ambiente, 2) `.env`, 3) defaults
 daqui. `get_settings()` é memoizado com `lru_cache` (lê env/.env uma vez por processo).
 
-`BACKEND` é o interruptor híbrido, no espírito da "prova viva de ports/adapters":
+`ADAPTERS` é o interruptor híbrido, no espírito da "prova viva de ports/adapters":
     mock -> tudo offline (extractor fake, blob em disco, repo em memória, vetor fake)
     aws  -> Bedrock (extração + embeddings) + S3 (blob) + Postgres/pgvector (metadados+vetor)
 Trocar de um pro outro NÃO muda o domínio/service - só qual adapter a `factory` injeta.
@@ -17,7 +17,7 @@ from functools import lru_cache
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class BackendName(StrEnum):
+class AdapterSet(StrEnum):
     """Conjunto de adapters a injetar (ver `factory`)."""
 
     MOCK = "mock"  # offline, sem AWS/Postgres - default de dev
@@ -44,9 +44,9 @@ class Settings(BaseSettings):
     auth_password: str = ""
 
     # Interruptor de adapters. MOCK por padrão: a UI sobe sem AWS/Postgres.
-    backend: BackendName = BackendName.MOCK
+    adapters: AdapterSet = AdapterSet.MOCK
 
-    # --- AWS / Bedrock (usado no backend=aws) ---------------------------------
+    # --- AWS / Bedrock (usado com ADAPTERS=aws) -------------------------------
     aws_region: str = "us-east-1"
     # None = AWS real; local (LocalStack/MinIO) = "http://localhost:4566".
     aws_endpoint_url: str | None = None
@@ -71,13 +71,27 @@ class Settings(BaseSettings):
     # Claude exige assinatura no Marketplace (cartão). Upgrade de qualidade: us.amazon.nova-pro-v1:0.
     agent_model_id: str = "us.amazon.nova-lite-v1:0"
 
-    # --- Blob store (S3 no backend=aws) ---------------------------------------
+    # --- Blob store (S3 com ADAPTERS=aws) -------------------------------------
     s3_bucket: str = "leia-documents"
-    # Diretório do blob em disco (backend=mock).
+    # Diretório do blob em disco (ADAPTERS=mock).
     blob_dir: str = ".leia-blobs"
 
-    # --- Metadados + vetores (Postgres/pgvector no backend=aws) ---------------
-    database_url: str = "postgresql://leia:leia@localhost:5432/leia"
+    # --- Metadados + vetores (Postgres/pgvector com ADAPTERS=aws) -------------
+    # Partes do DSN (montadas em `database_url` abaixo). No compose, DB_HOST vira `postgres`
+    # (nome do serviço); rodando FORA do Docker (make run-aws) fica `localhost`.
+    db_user: str = "leia"
+    db_password: str = "leia"
+    db_host: str = "localhost"
+    db_port: int = 5432
+    db_name: str = "leia"
+
+    @property
+    def database_url(self) -> str:
+        """DSN do Postgres montado das partes DB_* (psycopg/pgvector consomem isto)."""
+        return (
+            f"postgresql://{self.db_user}:{self.db_password}"
+            f"@{self.db_host}:{self.db_port}/{self.db_name}"
+        )
 
     # --- Servidor MCP (Stage 2/3) ---------------------------------------------
     mcp_host: str = "0.0.0.0"  # bind do servidor MCP HTTP

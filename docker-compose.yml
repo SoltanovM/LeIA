@@ -4,7 +4,7 @@
 #   make up    →  docker compose --profile tunnel up -d   → + frpc (público via relay)
 #
 # frpc alcança o leia por `leia:${LEIA_PORT}`; o leia alcança o banco por `postgres:5432`.
-# Credenciais AWS só são usadas com BACKEND=aws (o default é `mock`, offline).
+# Credenciais AWS só são usadas com ADAPTERS=aws (o default é `mock`, offline).
 
 services:
   leia:
@@ -15,16 +15,16 @@ services:
       - "${LEIA_PORT}:${LEIA_PORT}"
     environment:
       - LEIA_PORT=${LEIA_PORT}
-      - BACKEND=${BACKEND}
-      # No compose o host do banco é o serviço `postgres` (sobrescreve o default localhost).
-      - DATABASE_URL=postgresql://leia:leia@postgres:5432/leia
+      - ADAPTERS=${ADAPTERS}
+      # No compose o host do banco é o serviço `postgres` (as demais partes DB_* vêm do .env).
+      - DB_HOST=postgres
       - AWS_REGION=${AWS_REGION}
       - BEDROCK_MODEL_ID=${BEDROCK_MODEL_ID}
       - S3_BUCKET=${S3_BUCKET}
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
       - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:-}
-      # URL do servidor MCP (o agente da Stage 3 consome isto).
+      # URL do servidor MCP (o agente consome isto).
       - MCP_URL=http://leia-mcp:8087/mcp
       - AGENT_MODEL_ID=${AGENT_MODEL_ID}
       # Observabilidade: OTel -> Langfuse (self-hosted, UI :3000). OTEL_ENABLED vem do .env.
@@ -45,8 +45,8 @@ services:
     command: ["leia-mcp"]
     env_file: .env
     environment:
-      - BACKEND=${BACKEND}
-      - DATABASE_URL=postgresql://leia:leia@postgres:5432/leia
+      - ADAPTERS=${ADAPTERS}
+      - DB_HOST=postgres
       - AWS_REGION=${AWS_REGION}
       - BEDROCK_MODEL_ID=${BEDROCK_MODEL_ID}
       - S3_BUCKET=${S3_BUCKET}
@@ -67,15 +67,16 @@ services:
     image: pgvector/pgvector:pg16
     container_name: leia-postgres
     environment:
-      - POSTGRES_USER=leia
-      - POSTGRES_PASSWORD=leia
-      - POSTGRES_DB=leia
+      # Mesmas partes DB_* do .env que o app usa p/ montar o DATABASE_URL (fonte única).
+      - POSTGRES_USER=${DB_USER:-leia}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-leia}
+      - POSTGRES_DB=${DB_NAME:-leia}
     ports:
-      - "5432:5432"
+      - "${DB_PORT:-5432}:5432"
     volumes:
       - "./.postgres:/var/lib/postgresql/data"  # persiste entre reinícios
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U leia -d leia"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-leia} -d ${DB_NAME:-leia}"]
       interval: 5s
       timeout: 3s
       retries: 5

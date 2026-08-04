@@ -7,8 +7,8 @@ consome **MCP tools** e responde fundamentado nos seus documentos, **citando as 
 (arquivo/página).
 
 > **Nome:** *LeIA* = "leia!" (imperativo de ler) + **IA**. 🙂
-> Arquitetura **hexagonal** (ports & adapters). Backend `mock` (offline) ou `aws` (Bedrock +
-> S3 + Postgres/pgvector) - troca por uma env var.
+> Arquitetura **hexagonal** (ports & adapters). Adapters `mock` (offline) ou `aws` (Bedrock +
+> S3 + Postgres/pgvector) - troca por uma env var (`ADAPTERS`).
 
 ## Arquitetura (hexagonal - ports & adapters)
 
@@ -31,7 +31,7 @@ src/leia/
 │   ├── conversation/    # memory | postgres  (conversations, chat_messages)
 │   ├── conversation_memory/  # mock | pgvector  (memória semântica ENTRE conversas)
 │   └── aws_clients.py   # clients boto3 memoizados
-├── config.py            # pydantic-settings - BACKEND, login, MCP, Bedrock, Postgres, observabilidade
+├── config.py            # pydantic-settings - ADAPTERS, login, MCP, Bedrock, Postgres, observabilidade
 ├── factory.py           # COMPOSITION ROOT - build_service() / build_chat_service()
 ├── tracing.py           # OpenTelemetry (OpenInference) -> Langfuse (liga com OTEL_ENABLED)
 ├── db.py                # init do schema Postgres (console `leia-db`)
@@ -42,7 +42,7 @@ src/leia/
 tests/                   # test_service.py, test_chat.py - com adapters mock, SEM AWS/Postgres
 ```
 
-**Prova viva de ports/adapters:** o swap `mock ↔ aws` é só a env `BACKEND` - `service`, `chat`
+**Prova viva de ports/adapters:** o swap `mock ↔ aws` é só a env `ADAPTERS` - `service`, `chat`
 e domínio não mudam uma linha. `mock` roda 100% offline; `aws` = Bedrock + S3 + Postgres/pgvector.
 
 ## Rodar
@@ -50,7 +50,7 @@ e domínio não mudam uma linha. `mock` roda 100% offline; `aws` = Bedrock + S3 
 Pré-requisito: [uv](https://docs.astral.sh/uv/). Atalhos no `Makefile` (`make help`).
 
 ```bash
-cp .env.example .env      # default BACKEND=mock (roda sem AWS/Postgres)
+cp .env.example .env      # default ADAPTERS=mock (roda sem AWS/Postgres)
 make install              # uv sync
 make run                  # UI em http://localhost:8086 (Chat + Documentos)
 make mcp                  # servidor MCP HTTP em http://localhost:8087/mcp
@@ -69,7 +69,7 @@ Modo real (Bedrock + S3 + Postgres/pgvector):
 ```bash
 make db                   # sobe o Postgres (pgvector)
 make db-init              # cria o schema (documents, pages, page_chunks, conversations, chat_messages, …)
-make run-aws              # UI com BACKEND=aws (precisa de credenciais AWS)
+make run-aws              # UI com ADAPTERS=aws (precisa de credenciais AWS)
 ```
 
 Com Docker - um `docker-compose.yml` (leia + leia-mcp + postgres, mais Langfuse e frpc sob profiles):
@@ -117,7 +117,7 @@ make down                 # para o deployment
 make logs / ps / remove   # logs do frpc / estado / limpa containers por nome
 ```
 
-Exige `BACKEND=aws` e `FRP_TOKEN` no `.env` (mock não vai pra produção). Nada sensível vai pro
+Exige `ADAPTERS=aws` e `FRP_TOKEN` no `.env` (mock não vai pra produção). Nada sensível vai pro
 git: o `frpc.toml` lê tudo via `{{ .Envs.X }}` do `.env` (git-ignored).
 
 ## Qualidade
