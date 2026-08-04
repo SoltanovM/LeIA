@@ -1,8 +1,8 @@
 """Console script `leia` - sobe a UI Streamlit apontando pro `app.py` deste pacote.
 
-Existe pra dar um comando único (`leia`) mesmo o Streamlit precisando de um caminho de
-arquivo. É o que o `[project.scripts]` do pyproject expõe (learning 03: modo `--package`
-ganha CLI). A porta vem do `.env` via `Settings`.
+Existe para dar um comando único (`leia`) mesmo o Streamlit precisando de um caminho de
+arquivo. É o que o `[project.scripts]` do pyproject expõe.
+A porta vem do `.env` via `Settings`.
 """
 
 from __future__ import annotations

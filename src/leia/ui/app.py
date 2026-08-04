@@ -69,16 +69,6 @@ def _require_login() -> str:
     return st.session_state["auth_user"]
 
 
-# def _sidebar_footer(user: str) -> None:
-#     """Rodapé de usuário FIXO no fim da sidebar (container com key p/ o CSS mirar)."""
-#     with st.sidebar, st.container(key="sidebar_footer"):
-#         st.divider()
-#         st.markdown(f"👤 &nbsp;&nbsp; **{user}**")
-#         if st.button("Sair", width="stretch"):
-#             st.session_state.clear()
-#             st.rerun()
-
-
 current_user = _require_login()
 st.session_state["user"] = current_user
 st.markdown(_PIN_FOOTER, unsafe_allow_html=True)
@@ -92,4 +82,3 @@ navigation = st.navigation(
     ]
 )
 navigation.run()
-# _sidebar_footer(current_user)  # depois do run() -> é o último bloco -> vai pro fundo

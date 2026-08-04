@@ -1,7 +1,6 @@
-# frpc.toml - túnel reverso SÓ do LeIA. Mesmo padrão dos outros apps de lab.soltanov.io.
+# frpc.toml - túnel reverso SÓ do LeIA.
 # NADA de confidencial aqui: todos os valores sensíveis vêm do ./.env via templating
-# ({{ .Envs.X }}), que o frpc resolve antes de parsear o TOML. Assim este arquivo pode ir
-# pro git sem vazar endereço/porta/token do relay.
+# ({{ .Envs.X }}), que o frpc resolve antes de parsear o TOML.
 serverAddr = "{{ .Envs.FRP_SERVER_ADDR }}"    # relay (IP/host) - .env: FRP_SERVER_ADDR
 serverPort = {{ .Envs.FRP_SERVER_PORT }}      # frps: canal de controle - .env: FRP_SERVER_PORT
 auth.method = "token"

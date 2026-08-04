@@ -8,7 +8,7 @@ Fluxo dos dados:
     SearchHit   (trecho relevante devolvido pela busca semântica)
 
 Nada aqui conhece Bedrock/S3/Postgres - é o núcleo que os adapters servem. Regra de ouro do
-hexagonal: a dependência aponta de fora PRA DENTRO (infra depende do domínio, nunca o contrário).
+hexagonal: a dependência aponta de fora PARA DENTRO (infra depende do domínio, nunca o contrário).
 """
 
 from __future__ import annotations
